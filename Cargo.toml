@@ -1,0 +1,42 @@
+[package]
+name = "rs_base_api"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+# Main dependency, back bone of a web server
+actix-web = "~4.12"
+
+# Serialization
+serde = { version = "~1.0", features = ["derive"] }
+serde_json = "~1"
+
+# Logging
+env_logger = "~0.11"
+log = "~0.4"
+
+# Easy to string method to enums
+derive_more = { version = "~2.0", features = ["full"] }
+
+# For JWT
+jsonwebtoken = { version = "~10.2", features = ["rust_crypto"] }
+
+# Generate UUID
+uuid = { version = "~1.18", features = ["v4"] }
+
+# Load config
+dotenvy = "~0.15"  # Load plain env files to env var
+# config = "~0.15"  # Load config files into struct
+
+# Easy async for rust
+tokio = { version = "~1.48", features = ["full"] }
+tokio-util = "~0.7"
+futures = "~0.3"
+
+# Erro handling
+anyhow = "~1"
+
+# Data base communication
+# sqlx = { version = "0.8.2", features = [] } # No longer supports MSSQL
+tiberius = { version = "0.12", features = ["tds73", "rustls"], default-features = false } # Raw MSSQL connection
