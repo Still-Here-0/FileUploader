@@ -2,7 +2,7 @@ Mesmo com poucas tabelas base o esquema de banco de dados desse projeto pode par
 
 O esquema do banco pode ser visualizado por completo na seguinte imagem:
 
-<img src="./docs/esquema_completo.png" width="600">
+<img src="./_docs/esquema_completo.png" width="600">
 
 # Relacionamento e armazenamento dos dados
 Note que o esquema mostrado anteriormente é composto por blocos e linhas. Cada bloco corresponde a uma tabela do banco de dados, seu nome está posicionado na primeira fileira (colorida) enquanto que suas colunas são listadas nas fileiras seguintes. As linhas fazem ligações entre as tabelas (blocos), cada uma delas representa um correlação entre *primary key* e *foreign key*. Perceba que em uma das pontas das linhas tem um bolinha, ela indica a direção da correlação, a correlação entre as tabelas `WORKER` e "`PROFILE`" ocorre da seguinte maneira `MORKER.pk -> PROFILE.Worker_fk`.
@@ -100,7 +100,7 @@ OBS: poderia passar a ser opcional e o usuário que faz o upload não se preocup
 
 Para a tipagem dos dados das colunas, uma outra tabela foi implementada chamada de `COLUMN_TYPE`. Nela, defini-se apenas uma correlação entre tipagem do SQL (`SqlType`) e a descrição que será visualizada na UI do sistema (`ViewType`). Segue um exemplo de tipagem, usado na versão de teste da ferramenta:
 
-<img src="./docs/tipagem_teste.png" width="400">
+<img src="./_docs/tipagem_teste.png" width="400">
 
 Por fim, mas não menos importante, tem-se a tabela `UPLOADS`. Ela serve como nada mais nada menos do que um histórico de uploads, ela armazena o zip do arquivo que foi enviado (`FileUploaded`), quem o enviou (`UploadedBy_fk`), quando ele foi esse envio (`UploadedAt`) e para o caso de planilhas excel ou arquivos similares que podem possuir múltiplas "sheets" em seu interior, qual sheet foi utilizada (`SheetUsed`).
 
