@@ -1,10 +1,5 @@
 #![allow(unused)]
 
-use tokio_util::compat::TokioAsyncWriteCompatExt;
-use tiberius::{Client, Config, AuthMethod};
-use tokio::net::TcpStream;
-use std::env;
-
 mod ddb;
 pub mod api;
 

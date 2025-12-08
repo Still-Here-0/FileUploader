@@ -43,10 +43,10 @@ impl ToTokens for DBLoadInput {
         let get_cols = cols.iter().map(|col| {
             let reference = &col.reference;
             if col.optional {
-                return quote!(row.try_get(Self::#reference).unwrap());
+                return quote!(row.try_get(Self::#reference)?);
             }
 
-            quote!(row.get(Self::#reference).unwrap())
+            quote!(row.try_get(Self::#reference)?.unwrap())
         });
 
         tokens.extend(quote! {

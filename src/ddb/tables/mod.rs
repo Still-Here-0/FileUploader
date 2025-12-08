@@ -73,6 +73,7 @@ mod tests {
 
         for column in slq_columns {
             let column_name = column.name();
+            let a = column.column_type();
             if !columns.contains(&column_name) {
                 panic!("'{column_name}' not in '{tab_name}' definition")
             }
