@@ -39,6 +39,6 @@ impl CustomSqlScript {
 }
 
 use super::super::DBLoad;
-use super::super::tiberius_interface::FromOwenedSql;
+use super::super::tiberius_interface::FromOwnedSql;
 
 dbload!(CustomSqlScript, "CUSTOM_SQL_SCRIPT", COL_SHEET_FK, COL_RUNBF, COL_RUNAF, COL_RUNAS, COL_SCRIPT);

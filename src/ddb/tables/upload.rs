@@ -40,6 +40,6 @@ impl Upload {
 }
 
 use super::super::DBLoad;
-use super::super::tiberius_interface::FromOwenedSql;
+use super::super::tiberius_interface::FromOwnedSql;
 
 dbload!(Upload, "UPLOAD", COL_SHEET_FK, COL_FILE_UPLOADED, COL_UPLOADED_AT, COL_UPLOADED_BY_FK, COL_SHEET_USED?);

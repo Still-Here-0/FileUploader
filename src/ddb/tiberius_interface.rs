@@ -54,7 +54,7 @@ from_tiberius_value!(NaiveDate);
 from_tiberius_value!(NaiveTime);
 from_tiberius_value!(NaiveDateTime);
 
-pub trait FromOwenedSql {
+pub trait FromOwnedSql {
     fn try_get_by_index<T>(&self, idx: usize) -> anyhow::Result<Option<T>>
     where
         T: TiberiusCoversion;
@@ -64,7 +64,7 @@ pub trait FromOwenedSql {
         T: TiberiusCoversion;
 }
 
-impl FromOwenedSql for tiberius::Row {
+impl FromOwnedSql for tiberius::Row {
     fn try_get_by_index<T>(&self, idx: usize) -> anyhow::Result<Option<T>>
     where
         T: TiberiusCoversion

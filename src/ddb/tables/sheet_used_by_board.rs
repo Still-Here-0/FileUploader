@@ -28,6 +28,6 @@ impl SheetUsedByBoard {
 
 
 use super::super::DBLoad;
-use super::super::tiberius_interface::FromOwenedSql;
+use super::super::tiberius_interface::FromOwnedSql;
 
 dbload!(SheetUsedByBoard, "SHEET_USED_BY_BOARD", COL_SHEET_FK, COL_BOARD_FK);

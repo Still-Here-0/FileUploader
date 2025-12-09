@@ -7,7 +7,7 @@ use tokio::net::TcpStream;
 use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
 
 use super::{DBLoad};
-use super::tiberius_interface::{WhereSqlValue, TiberiusCoversion, FromOwenedSql};
+use super::tiberius_interface::{WhereSqlValue, TiberiusCoversion, FromOwnedSql};
 
 /* #region private funcitons */
 

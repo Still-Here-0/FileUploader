@@ -28,6 +28,6 @@ impl ProfileGroups {
 
 
 use super::super::DBLoad;
-use super::super::tiberius_interface::FromOwenedSql;
+use super::super::tiberius_interface::FromOwnedSql;
 
 dbload!(ProfileGroups, "PROFILE_GROUPS", COL_PROFILE_FK, COL_GROUP_FK);

@@ -36,6 +36,6 @@ impl Worker {
 }
 
 use super::super::DBLoad;
-use super::super::tiberius_interface::FromOwenedSql;
+use super::super::tiberius_interface::FromOwnedSql;
 
 dbload!(Worker, "WORKER", COL_PK, COL_NAME, COL_LINDE_ID, COL_EMAIL);

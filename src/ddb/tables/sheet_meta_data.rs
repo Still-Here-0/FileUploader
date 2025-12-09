@@ -52,6 +52,6 @@ impl SheetMetaData {
 
 
 use super::super::DBLoad;
-use super::super::tiberius_interface::FromOwenedSql;
+use super::super::tiberius_interface::FromOwnedSql;
 
 dbload!(SheetMetaData, "SHEET_META_DATA", COL_PK, COL_SHEET_FK, COL_COLUMN_NAME, COL_COLUMN_TYPE_FK, COL_OPTIONAL, COL_REGEX_CONSTRAINT?, COL_LAST_EDITED_BY_FK, COL_DESCRIPTION);

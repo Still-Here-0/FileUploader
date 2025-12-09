@@ -66,6 +66,6 @@ impl HistSheet {
 
 
 use super::super::DBLoad;
-use super::super::tiberius_interface::FromOwenedSql;
+use super::super::tiberius_interface::FromOwnedSql;
 
 dbload!(HistSheet, "HIST_SHEET", COL_SHEET_FK, COL_DESCRIPTION?, COL_TABLE_NAME?, COL_LAST_EDITED_BY_FK?, COL_ACTIVE?, COL_DAYS_TO_REFRESH?, COL_MODEL?, COL_REQUEST_AFTER_UPDATE?, COL_EDITED_BY_FK, COL_EDITED_AT, COL_EDIT_ACTION);

@@ -50,6 +50,6 @@ impl HistUploaderPermission {
 
 
 use super::super::DBLoad;
-use super::super::tiberius_interface::FromOwenedSql;
+use super::super::tiberius_interface::FromOwnedSql;
 
 dbload!(HistUploaderPermission, "HIST_UPLOADER_PERMISSION", COL_GROUP_FK, COL_SHEET_FK, COL_CAN_VIEW_HIST?, COL_CAN_UPLOAD?, COL_EDITED_BY_FK, COL_EDITED_AT, COL_EDIT_ACTION);

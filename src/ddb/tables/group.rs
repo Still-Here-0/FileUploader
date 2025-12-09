@@ -40,6 +40,6 @@ impl Group {
 
 
 use super::super::DBLoad;
-use super::super::tiberius_interface::FromOwenedSql;
+use super::super::tiberius_interface::FromOwnedSql;
 
 dbload!(Group, "GROUP", COL_PK, COL_NAME, COL_ACTIVE, COL_BOARD_ID, COL_LAST_EDITED_BY_FK);

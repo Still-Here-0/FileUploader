@@ -82,6 +82,6 @@ impl HistGroup {
 
 
 use super::super::DBLoad;
-use super::super::tiberius_interface::FromOwenedSql;
+use super::super::tiberius_interface::FromOwnedSql;
 
 dbload!(HistGroup, "HIST_GROUP", COL_GROUP_FK, COL_NAME?, COL_ACTIVE?, COL_ADD_WORKER?, COL_EDIT_WORKER?, COL_ADD_PROFILE?, COL_REMOVE_PROFILE?, COL_ADD_GROUP?, COL_REMOVE_GROUP?, COL_EDIT_GROUP?, COL_EDIT_PROFILE_GROUPS?, COL_EDITED_BY_FK, COL_EDITED_AT, COL_EDIT_ACTION, COL_IMPERSONATE_USERS?);

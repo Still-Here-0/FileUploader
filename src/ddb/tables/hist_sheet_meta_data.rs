@@ -62,6 +62,6 @@ impl HistSheetMetaData {
 
 
 use super::super::DBLoad;
-use super::super::tiberius_interface::FromOwenedSql;
+use super::super::tiberius_interface::FromOwnedSql;
 
 dbload!(HistSheetMetaData, "HIST_SHEET_META_DATA", COL_SHEET_META_DATA_FK, COL_SHEET_FK?, COL_COLUMN_NAME?, COL_COLUMN_TYPE_FK?, COL_OPTIONAL?, COL_REGEX_CONSTRAINT?, COL_DESCRIPTION?, COL_EDITED_BY_FK, COL_EDITED_AT, COL_EDIT_ACTION);

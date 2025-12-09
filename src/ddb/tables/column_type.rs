@@ -26,7 +26,7 @@ impl ColumnType {
 }
 
 use super::super::DBLoad;
-use super::super::tiberius_interface::FromOwenedSql;
+use super::super::tiberius_interface::FromOwnedSql;
 
 dbload!(ColumnType, "COLUMN_TYPE", COL_PK, COL_SQL_TYPE, COL_VIEW_TYPE);
 

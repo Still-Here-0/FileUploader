@@ -26,7 +26,7 @@ impl Board {
 }
 
 use super::super::DBLoad;
-use super::super::tiberius_interface::FromOwenedSql;
+use super::super::tiberius_interface::FromOwnedSql;
 
 dbload!(Board, "BOARD", COL_PK, COL_NAME, COL_ACTIVE);
 

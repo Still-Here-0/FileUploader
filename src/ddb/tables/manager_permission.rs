@@ -60,6 +60,6 @@ impl ManagerPermission {
 
 
 use super::super::DBLoad;
-use super::super::tiberius_interface::FromOwenedSql;
+use super::super::tiberius_interface::FromOwnedSql;
 
 dbload!(ManagerPermission, "MANAGER_PERMISSION", COL_GROUP_FK, COL_ADD_WORKER, COL_EDIT_WORKER, COL_ADD_PROFILE, COL_REMOVE_PROFILE, COL_ADD_GROUP, COL_REMOVE_GROUP, COL_EDIT_GROUP, COL_EDIT_PROFILE_GROUPS, COL_IMPERSONATE_USERS );
