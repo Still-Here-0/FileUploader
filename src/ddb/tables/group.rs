@@ -23,13 +23,11 @@ impl Group {
     
     pub fn db_new(
         pk: i32,
-        name: &str,
+        name: String,
         active: bool,
         board_id: i32,
         last_edited_by_fk: i32
     ) -> Self {
-        let name = name.to_string();
-        
         Self {
             pk,
             name,
@@ -42,5 +40,6 @@ impl Group {
 
 
 use super::super::DBLoad;
+use super::super::tiberius_interface::FromOwenedSql;
 
 dbload!(Group, "GROUP", COL_PK, COL_NAME, COL_ACTIVE, COL_BOARD_ID, COL_LAST_EDITED_BY_FK);

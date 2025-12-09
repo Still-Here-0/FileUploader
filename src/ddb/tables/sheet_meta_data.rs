@@ -30,17 +30,13 @@ impl SheetMetaData {
     pub fn db_new(
         pk: i32,
         sheet_fk: i32,
-        column_name: &str,
+        column_name: String,
         column_type_fk: i32,
         optinal: bool,
-        regex_constrait: Option<&str>,
+        regex_constrait: Option<String>,
         last_editeded_by_fk: i32,
-        description: &str
+        description: String
     ) -> Self {
-        let column_name = column_name.to_string();
-        let regex_constrait = regex_constrait.map(str::to_string);
-        let description = description.to_string();
-
         Self {
             pk,
             sheet_fk,
@@ -56,5 +52,6 @@ impl SheetMetaData {
 
 
 use super::super::DBLoad;
+use super::super::tiberius_interface::FromOwenedSql;
 
 dbload!(SheetMetaData, "SHEET_META_DATA", COL_PK, COL_SHEET_FK, COL_COLUMN_NAME, COL_COLUMN_TYPE_FK, COL_OPTIONAL, COL_REGEX_CONSTRAINT?, COL_LAST_EDITED_BY_FK, COL_DESCRIPTION);

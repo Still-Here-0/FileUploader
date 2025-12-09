@@ -28,5 +28,6 @@ impl ProfileGroups {
 
 
 use super::super::DBLoad;
+use super::super::tiberius_interface::FromOwenedSql;
 
 dbload!(ProfileGroups, "PROFILE_GROUPS", COL_PROFILE_FK, COL_GROUP_FK);

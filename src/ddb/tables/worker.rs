@@ -22,14 +22,10 @@ impl Worker {
     
     pub fn db_new(
         pk: i32,
-        name: &str,
-        linde_id: &str,
-        email: &str,
+        name: String,
+        linde_id: String,
+        email: String,
     ) -> Self {
-        let name = name.to_string();
-        let linde_id  = linde_id.to_string();
-        let email = email.to_string();
-
         Self {
             pk,
             name,
@@ -40,5 +36,6 @@ impl Worker {
 }
 
 use super::super::DBLoad;
+use super::super::tiberius_interface::FromOwenedSql;
 
 dbload!(Worker, "WORKER", COL_PK, COL_NAME, COL_LINDE_ID, COL_EMAIL);

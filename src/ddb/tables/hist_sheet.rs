@@ -37,23 +37,17 @@ impl HistSheet {
     
     pub fn db_new(
         sheet_fk: i32,
-        description: Option<&str>,
-        table_name: Option<&str>,
+        description: Option<String>,
+        table_name: Option<String>,
         last_edited_by_fk: Option<i32>,
         active: Option<bool>,
         days_to_refresh: Option<i32>,
-        model: Option<&[u8]>,
-        request_after_update: Option<&str>,
+        model: Option<Vec<u8>>,
+        request_after_update: Option<String>,
         edited_by_fk: i32,
         edited_at: NaiveDateTime,
-        edit_action: &str,
+        edit_action: String,
     ) -> Self {
-        let description = description.map(str::to_string);
-        let table_name = table_name.map(str::to_string);
-        let model = model.map(|item| item.to_vec());
-        let request_after_update = request_after_update.map(str::to_string);
-        let edit_action = edit_action.to_string();
-        
         Self {
             sheet_fk,
             description,
@@ -72,5 +66,6 @@ impl HistSheet {
 
 
 use super::super::DBLoad;
+use super::super::tiberius_interface::FromOwenedSql;
 
 dbload!(HistSheet, "HIST_SHEET", COL_SHEET_FK, COL_DESCRIPTION?, COL_TABLE_NAME?, COL_LAST_EDITED_BY_FK?, COL_ACTIVE?, COL_DAYS_TO_REFRESH?, COL_MODEL?, COL_REQUEST_AFTER_UPDATE?, COL_EDITED_BY_FK, COL_EDITED_AT, COL_EDIT_ACTION);

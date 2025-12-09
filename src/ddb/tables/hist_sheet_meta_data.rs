@@ -36,20 +36,15 @@ impl HistSheetMetaData {
     pub fn db_new(
         sheet_meta_data_fk: i32,
         sheet_fk: Option<i32>,
-        column_name: Option<&str>,
+        column_name: Option<String>,
         column_type_fk: Option<i32>,
         optinal: Option<bool>,
-        regex_constrait: Option<&str>,
-        description: Option<&str>,
+        regex_constrait: Option<String>,
+        description: Option<String>,
         edited_by_fk: i32,
         edited_at: NaiveDateTime,
-        edit_action: &str,
+        edit_action: String,
     ) -> Self {
-        let column_name = column_name.map(str::to_string);
-        let regex_constrait = regex_constrait.map(str::to_string);
-        let description = description.map(str::to_string);
-        let edit_action = edit_action.to_string();
-        
         Self {
             sheet_meta_data_fk,
             sheet_fk,
@@ -67,5 +62,6 @@ impl HistSheetMetaData {
 
 
 use super::super::DBLoad;
+use super::super::tiberius_interface::FromOwenedSql;
 
 dbload!(HistSheetMetaData, "HIST_SHEET_META_DATA", COL_SHEET_META_DATA_FK, COL_SHEET_FK?, COL_COLUMN_NAME?, COL_COLUMN_TYPE_FK?, COL_OPTIONAL?, COL_REGEX_CONSTRAINT?, COL_DESCRIPTION?, COL_EDITED_BY_FK, COL_EDITED_AT, COL_EDIT_ACTION);

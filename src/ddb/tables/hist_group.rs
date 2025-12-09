@@ -45,7 +45,7 @@ impl HistGroup {
     
     pub fn db_new(
         group_fk: i32,
-        name: Option<&str>,
+        name: Option<String>,
         active: Option<bool>,
         add_worker: Option<bool>,
         edit_worker: Option<bool>,
@@ -57,12 +57,9 @@ impl HistGroup {
         edit_profile_groups: Option<bool>,
         edited_by_fk: i32,
         edited_at: NaiveDateTime,
-        edit_action: &str,
+        edit_action: String,
         impersonate_users: Option<bool>
     ) -> Self {
-        let name = name.map(str::to_string);
-        let edit_action = edit_action.to_string();
-        
         Self {
             group_fk,
             name,
@@ -85,5 +82,6 @@ impl HistGroup {
 
 
 use super::super::DBLoad;
+use super::super::tiberius_interface::FromOwenedSql;
 
 dbload!(HistGroup, "HIST_GROUP", COL_GROUP_FK, COL_NAME?, COL_ACTIVE?, COL_ADD_WORKER?, COL_EDIT_WORKER?, COL_ADD_PROFILE?, COL_REMOVE_PROFILE?, COL_ADD_GROUP?, COL_REMOVE_GROUP?, COL_EDIT_GROUP?, COL_EDIT_PROFILE_GROUPS?, COL_EDITED_BY_FK, COL_EDITED_AT, COL_EDIT_ACTION, COL_IMPERSONATE_USERS?);

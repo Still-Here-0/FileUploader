@@ -28,7 +28,6 @@ impl UploaderPermission {
         can_upload: bool,
         last_edited_by_fk: i32,
     ) -> Self {
-
         Self {
             group_fk,
             sheet_fk,
@@ -40,5 +39,6 @@ impl UploaderPermission {
 }
 
 use super::super::DBLoad;
+use super::super::tiberius_interface::FromOwenedSql;
 
 dbload!(UploaderPermission, "UPLOADER_PERMISSION", COL_GROUP_FK, COL_SHEET_FK, COL_CAN_VIEW_HIST, COL_CAN_UPLOAD, COL_LAST_EDITED_BY_FK);

@@ -29,19 +29,14 @@ impl Sheet {
     
     pub fn db_new(
         pk: i32,
-        description: &str,
-        table_name: &str,
+        description: String,
+        table_name: String,
         last_edited_by_fk: i32,
         active: bool,
         days_to_refresh: i32,
-        model: Option<&[u8]>,
-        request_after_update: Option<&str>
+        model: Option<Vec<u8>>,
+        request_after_update: Option<String>
     ) -> Self {
-        let description = description.to_string();
-        let table_name = table_name.to_string();
-        let request_after_update = request_after_update.map(|s| s.to_string());
-        let model = model.map(|m| m.to_vec());
-
         Self {
             pk,
             description,
@@ -57,6 +52,6 @@ impl Sheet {
 
 
 use super::super::DBLoad;
-
+use super::super::tiberius_interface::FromOwenedSql;
 
 dbload!(Sheet, "SHEET", COL_PK, COL_DESCRIPTION, COL_TABLE_NAME, COL_LAST_EDITED_BY_FK, COL_ACTIVE, COL_DAYS_TO_REFRESH, COL_MODEL?, COL_REQUEST_AFTER_UPDATE?);

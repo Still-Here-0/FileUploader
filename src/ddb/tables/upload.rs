@@ -24,14 +24,11 @@ impl Upload {
     
     pub fn db_new(
         sheet_fk: i32,
-        file_uploaded: &[u8],
+        file_uploaded: Vec<u8>,
         uploaded_at: NaiveDateTime,
         uploaded_by_fk: i32,
-        sheet_used: Option<&str>
+        sheet_used: Option<String>
     ) -> Self {
-        let file_uploaded = file_uploaded.to_vec();
-        let sheet_used = sheet_used.map(str::to_string);
-
         Self {
             sheet_fk,
             file_uploaded,
@@ -43,5 +40,6 @@ impl Upload {
 }
 
 use super::super::DBLoad;
+use super::super::tiberius_interface::FromOwenedSql;
 
 dbload!(Upload, "UPLOAD", COL_SHEET_FK, COL_FILE_UPLOADED, COL_UPLOADED_AT, COL_UPLOADED_BY_FK, COL_SHEET_USED?);

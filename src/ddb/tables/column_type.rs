@@ -16,10 +16,7 @@ impl ColumnType {
     pub const COL_SQL_TYPE: &'static str = "SqlType";
     pub const COL_VIEW_TYPE: &'static str = "ViewType";
     
-    pub fn db_new(pk: i32, sql_type: &str, view_type: &str) -> Self {
-        let sql_type = sql_type.to_string();
-        let view_type = view_type.to_string();
-        
+    pub fn db_new(pk: i32, sql_type: String, view_type: String) -> Self {
         Self {
             pk,
             sql_type,
@@ -29,6 +26,7 @@ impl ColumnType {
 }
 
 use super::super::DBLoad;
+use super::super::tiberius_interface::FromOwenedSql;
 
 dbload!(ColumnType, "COLUMN_TYPE", COL_PK, COL_SQL_TYPE, COL_VIEW_TYPE);
 

@@ -26,10 +26,8 @@ impl CustomSqlScript {
         run_before_update: bool,
         run_after_update: bool,
         run_as_update: bool,
-        custom_script: &str
+        custom_script: String
     ) -> Self {
-        let custom_script = custom_script.to_string();
-        
         Self {
             sheet_fk,
             run_before_update,
@@ -41,5 +39,6 @@ impl CustomSqlScript {
 }
 
 use super::super::DBLoad;
+use super::super::tiberius_interface::FromOwenedSql;
 
 dbload!(CustomSqlScript, "CUSTOM_SQL_SCRIPT", COL_SHEET_FK, COL_RUNBF, COL_RUNAF, COL_RUNAS, COL_SCRIPT);

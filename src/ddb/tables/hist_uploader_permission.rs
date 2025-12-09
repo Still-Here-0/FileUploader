@@ -30,15 +30,12 @@ impl HistUploaderPermission {
     pub fn db_new(
         group_fk: i32,
         sheet_fk: i32,
-        can_view_hist: Option<&str>,
+        can_view_hist: Option<String>,
         can_upload: Option<i32>,
         edited_by_fk: i32,
         edited_at: NaiveDateTime,
-        edit_action: &str,
+        edit_action: String,
     ) -> Self {
-        let can_view_hist = can_view_hist.map(str::to_string);
-        let edit_action = edit_action.to_string();
-        
         Self {
             group_fk,
             sheet_fk,
@@ -53,5 +50,6 @@ impl HistUploaderPermission {
 
 
 use super::super::DBLoad;
+use super::super::tiberius_interface::FromOwenedSql;
 
 dbload!(HistUploaderPermission, "HIST_UPLOADER_PERMISSION", COL_GROUP_FK, COL_SHEET_FK, COL_CAN_VIEW_HIST?, COL_CAN_UPLOAD?, COL_EDITED_BY_FK, COL_EDITED_AT, COL_EDIT_ACTION);

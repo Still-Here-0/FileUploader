@@ -163,13 +163,13 @@ async fn get_query_single_response<R>(sql: String, column_name: Option<&'static 
 
     let row = stream.into_row().await?.expect("No data in the given query {query:?}");
 
-    let value: Option<R> = match column_name {
+    let value = match column_name {
         Some(name) => {
-            let value: Option<R> = row.try_get_by_name::<R>(name)?;
+            let value= row.try_get_by_name(name)?;
             value
         },
         None => {
-            let value: Option<R> = row.try_get_by_index::<R>(0)?;
+            let value = row.try_get_by_index(0)?;
             value
         },
     };
@@ -267,7 +267,7 @@ mod tests {
 
         while let Some(row) = rows.next().await.transpose().unwrap() {
             // This works
-            let name: Option<&'_ str> = row.try_get(0).unwrap();
+            let name: Option<String> = row.try_get_by_index(0).unwrap();
             println!("{:?}", name);
         }
     }

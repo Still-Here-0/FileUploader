@@ -16,9 +16,7 @@ impl Board {
     pub const COL_NAME: &'static str = "Name";
     pub const COL_ACTIVE: &'static str = "Active";
     
-    pub fn db_new(pk: i32, name: &str, active: bool) -> Self {
-        let name = name.to_string();
-        
+    pub fn db_new(pk: i32, name: String, active: bool) -> Self {
         Self { 
             pk,
             name,
@@ -28,6 +26,7 @@ impl Board {
 }
 
 use super::super::DBLoad;
+use super::super::tiberius_interface::FromOwenedSql;
 
 dbload!(Board, "BOARD", COL_PK, COL_NAME, COL_ACTIVE);
 

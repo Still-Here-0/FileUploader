@@ -40,5 +40,6 @@ impl Profile {
 
 
 use super::super::DBLoad;
+use super::super::tiberius_interface::FromOwenedSql;
 
 dbload!(Profile, "PROFILE", COL_PK, COL_ACTIVE, COL_BOARD_FK?, COL_WORKER_FK, COL_IS_SUPER_USER);

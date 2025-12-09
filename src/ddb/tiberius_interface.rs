@@ -5,38 +5,6 @@ use tiberius::{ FromSql, Result };
 
 use crate::from_tiberius_value;
 
-pub trait FromOwenedSql {
-    fn try_get_by_index<T>(&self, idx: usize) -> anyhow::Result<Option<T>>
-    where
-        T: TiberiusCoversion;
-
-    fn try_get_by_name<T>(&self, idx: &str) -> anyhow::Result<Option<T>>
-    where
-        T: TiberiusCoversion;
-}
-
-impl FromOwenedSql for tiberius::Row {
-    fn try_get_by_index<T>(&self, idx: usize) -> anyhow::Result<Option<T>>
-    where
-        T: TiberiusCoversion
-    {
-        let opt_unowened: Option<<T as TiberiusCoversion>::SqlType<'_>> = self.try_get(idx)?;
-        let opt_owened = opt_unowened.map(T::convert);
-
-        Ok(opt_owened)
-    }
-
-    fn try_get_by_name<T>(&self, idx: &str) -> anyhow::Result<Option<T>>
-    where
-        T: TiberiusCoversion
-    {
-        let opt_unowened: Option<<T as TiberiusCoversion>::SqlType<'_>> = self.try_get(idx)?;
-        let opt_owened = opt_unowened.map(T::convert);
-
-        Ok(opt_owened)
-    }
-}
-
 #[derive(Debug, Clone)]
 pub enum WhereSqlValue {
     Int(i32),
@@ -85,3 +53,35 @@ from_tiberius_value!(bool);
 from_tiberius_value!(NaiveDate);
 from_tiberius_value!(NaiveTime);
 from_tiberius_value!(NaiveDateTime);
+
+pub trait FromOwenedSql {
+    fn try_get_by_index<T>(&self, idx: usize) -> anyhow::Result<Option<T>>
+    where
+        T: TiberiusCoversion;
+
+    fn try_get_by_name<T>(&self, idx: &str) -> anyhow::Result<Option<T>>
+    where
+        T: TiberiusCoversion;
+}
+
+impl FromOwenedSql for tiberius::Row {
+    fn try_get_by_index<T>(&self, idx: usize) -> anyhow::Result<Option<T>>
+    where
+        T: TiberiusCoversion
+    {
+        let opt_unowened: Option<<T as TiberiusCoversion>::SqlType<'_>> = self.try_get(idx)?;
+        let opt_owened = opt_unowened.map(T::convert);
+
+        Ok(opt_owened)
+    }
+
+    fn try_get_by_name<T>(&self, idx: &str) -> anyhow::Result<Option<T>>
+    where
+        T: TiberiusCoversion
+    {
+        let opt_unowened: Option<<T as TiberiusCoversion>::SqlType<'_>> = self.try_get(idx)?;
+        let opt_owened = opt_unowened.map(T::convert);
+
+        Ok(opt_owened)
+    }
+}
