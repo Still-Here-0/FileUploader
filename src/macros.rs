@@ -19,4 +19,14 @@ macro_rules! from_tiberius_value {
             }
         }
     };
+    ($ty1:ty, ty2:ty) => {
+        impl TiberiusCoversion for $ty1 {
+            type SqlType<'c> = $ty2;
+
+            #[inline]
+            fn convert<'c>(v: Self::SqlType<'c>) -> $ty2 {
+                v
+            }
+        }
+    };
 }

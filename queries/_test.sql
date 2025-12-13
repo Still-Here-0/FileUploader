@@ -1,0 +1,1 @@
+SELECT * FROM uploader.COLUMN_TYPE

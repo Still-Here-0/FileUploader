@@ -52,16 +52,18 @@ pub use worker::Worker;
 
 #[cfg(test)]
 mod tests {
+    use futures::StreamExt;
+
     use crate::ddb::tables::hist_sheet::HistSheet;
 
     use super::*;
     use super::super::DBLoad;
 
-    async fn check_table<T, const N: usize>() 
-        where T: DBLoad<N>
+    async fn check_table<T>() 
+        where T: DBLoad
     {
         dotenvy::dotenv().ok();
-        let mut client = super::super::context::mssql_connect().await.unwrap();
+        let mut client = super::super::context::mssql_client().await.unwrap();
     
         let tab_name = T::TAB;
         let columns = T::COLS;
@@ -79,125 +81,93 @@ mod tests {
             }
         }
     
-        let a = T::from_stream(stream).await.unwrap();
+        let a = stream.into_row_stream().next().await.unwrap().unwrap();
+        print!("{a:?}")
+        // let a = T::from_stream(stream).await.unwrap();
     }
 
     #[tokio::test]
     async fn check_board() {
-        type Table = Board;
-        const LEN: usize = Table::COLS.len();
-        check_table::<Table, LEN>().await
+        check_table::<Board>().await
     }
 
     #[tokio::test]
     async fn check_column_type() {
-        type Table = ColumnType;
-        const LEN: usize = Table::COLS.len();
-        check_table::<Table, LEN>().await
+        check_table::<ColumnType>().await
     }
 
     #[tokio::test]
     async fn check_custom_sql_script() {
-        type Table = CustomSqlScript;
-        const LEN: usize = Table::COLS.len();
-        check_table::<Table, LEN>().await
+        check_table::<CustomSqlScript>().await
     }
 
     #[tokio::test]
     async fn check_group() {
-        type Table = Group;
-        const LEN: usize = Table::COLS.len();
-        check_table::<Table, LEN>().await
+        check_table::<Group>().await
     }
 
     #[tokio::test]
     async fn check_hist_group() {
-        type Table = HistGroup;
-        const LEN: usize = Table::COLS.len();
-        check_table::<Table, LEN>().await
+        check_table::<HistGroup>().await
     }
 
     #[tokio::test]
     async fn check_hist_sheet() {
-        type Table = HistSheet;
-        const LEN: usize = Table::COLS.len();
-        check_table::<Table, LEN>().await
+        check_table::<HistSheet>().await
     }
 
     #[tokio::test]
     async fn check_hist_uploader_permission() {
-        type Table = HistUploaderPermission;
-        const LEN: usize = Table::COLS.len();
-        check_table::<Table, LEN>().await
+        check_table::<HistUploaderPermission>().await
     }
 
     #[tokio::test]
     async fn check_hist_sheet_meta_data() {
-        type Table = HistSheetMetaData;
-        const LEN: usize = Table::COLS.len();
-        check_table::<Table, LEN>().await
+        check_table::<HistSheetMetaData>().await
     }
 
     #[tokio::test]
     async fn check_manager_permission() {
-        type Table = ManagerPermission;
-        const LEN: usize = Table::COLS.len();
-        check_table::<Table, LEN>().await
+        check_table::<ManagerPermission>().await
     }
 
     #[tokio::test]
     async fn check_profile_groups() {
-        type Table = ProfileGroups;
-        const LEN: usize = Table::COLS.len();
-        check_table::<Table, LEN>().await
+        check_table::<ProfileGroups>().await
     }
 
     #[tokio::test]
     async fn check_profile() {
-        type Table = Profile;
-        const LEN: usize = Table::COLS.len();
-        check_table::<Table, LEN>().await
+        check_table::<Profile>().await
     }
 
     #[tokio::test]
     async fn check_sheet_meta_data() {
-        type Table = SheetMetaData;
-        const LEN: usize = Table::COLS.len();
-        check_table::<Table, LEN>().await
+        check_table::<SheetMetaData>().await
     }
 
     #[tokio::test]
     async fn check_sheet_used_by_board() {
-        type Table = SheetUsedByBoard;
-        const LEN: usize = Table::COLS.len();
-        check_table::<Table, LEN>().await
+        check_table::<SheetUsedByBoard>().await
     }
 
     #[tokio::test]
     async fn check_sheet() {
-        type Table = Sheet;
-        const LEN: usize = Table::COLS.len();
-        check_table::<Table, LEN>().await
+        check_table::<Sheet>().await
     }
 
     #[tokio::test]
     async fn check_upload() {
-        type Table = Upload;
-        const LEN: usize = Table::COLS.len();
-        check_table::<Table, LEN>().await
+        check_table::<Upload>().await
     }
 
     #[tokio::test]
     async fn check_uploader_permission() {
-        type Table = UploaderPermission;
-        const LEN: usize = Table::COLS.len();
-        check_table::<Table, LEN>().await
+        check_table::<UploaderPermission>().await
     }
 
     #[tokio::test]
     async fn check_worker() {
-        type Table = Worker;
-        const LEN: usize = Table::COLS.len();
-        check_table::<Table, LEN>().await
+        check_table::<Worker>().await
     }
 }

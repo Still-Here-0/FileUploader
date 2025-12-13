@@ -50,9 +50,10 @@ impl ToTokens for DBLoadInput {
         });
 
         tokens.extend(quote! {
-            impl DBLoad<#count_lit> for #table_type {
+            impl DBLoad for #table_type {
+                const LEN: usize = #count;
                 const TAB: &'static str = #table_name;
-                const COLS: [&'static str; #count_lit] = [ #( #arr_cols ),* ];
+                const COLS: &'static [&'static str] = &[ #( #arr_cols ),* ];
 
                 fn from_stream(stream: QueryStream<'_>) -> Pin<Box<dyn Future<Output = anyhow::Result<Vec<Self>>> + Send + '_>> {
                     let mut row_stream = stream.into_row_stream();
