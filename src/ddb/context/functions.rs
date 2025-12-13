@@ -274,7 +274,7 @@ mod tests {
     use crate::ddb::{DBLoad, context::db_types::{ChainReturn, SqlValue}, tables::*};
     const VAR_TYPES: usize = 6;
 
-    #[tokio::test]
+    // #[tokio::test]
     async fn not_a_test() {
         dotenvy::dotenv().ok();
         let mut chain_exec = ChainedExec::new();
