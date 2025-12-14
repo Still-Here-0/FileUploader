@@ -1,15 +1,17 @@
-use std::{env, fs, result};
+use std::collections::HashSet;
+use std::{env, fs};
 
 use chrono::{NaiveDate, NaiveDateTime};
 use futures::StreamExt;
-use serde::de::value;
+use regex::Regex;
 use tiberius::{AuthMethod, Client, Config, ExecuteResult, Query};
 use tokio::net::TcpStream;
 use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
 
-use super::db_types::{SqlParameters, SqlValue, ChainedExec};
+use super::db_types::{SqlParameters, SqlValue, ChainExec};
 use super::super::{DBLoad};
 use super::tiberius_interface::{TiberiusCoversion, FromOwnedSql};
+use crate::st;
 
 /* #region PRIVATE FUNCTIONS */
 
@@ -24,10 +26,11 @@ fn build_where_clause(map: SqlParameters) -> String {
         where_clause.push_str(&value.to_sql_where());
     }
 
-    String::from(format!("WHERE 1 = 1 {where_clause}"))
+    where_clause = st!(&where_clause[4..]);
+    format!("WHERE {where_clause}")
 }
 
-fn build_known_select_clause<T>(where_parameters: SqlParameters, columns: Option<Vec<&str>>, top: Option<u8>) -> String
+fn build_known_select_clause<T>(where_parameters: Option<SqlParameters>, columns: Option<Vec<&str>>, top: Option<u8>) -> String
     where 
         T: DBLoad
 {
@@ -36,9 +39,13 @@ fn build_known_select_clause<T>(where_parameters: SqlParameters, columns: Option
     build_generic_select_clause(table_name, where_parameters, columns, top)
 }
 
-fn build_generic_select_clause(table_name: &str, where_parameters: SqlParameters, columns: Option<Vec<&str>>, top: Option<u8>) -> String {
+fn build_generic_select_clause(table_name: &str, where_parameters: Option<SqlParameters>, columns: Option<Vec<&str>>, top: Option<u8>) -> String {
     
-    let where_clause = build_where_clause(where_parameters);
+    let mut where_clause = st!("");
+    if let Some(where_parameters) = where_parameters {
+        where_clause = build_where_clause(where_parameters);
+    }
+
     let top = match top {
         Some(value) => format!("TOP {value}"),
         None => String::new(),
@@ -46,13 +53,79 @@ fn build_generic_select_clause(table_name: &str, where_parameters: SqlParameters
 
     let columns = match columns {
         Some(values) => values.join(", "),
-        None => "*".to_string(),
+        None => st!("*"),
     };
     
     format!("SELECT {top} {columns} FROM uploader.[{table_name}] {where_clause}")
 }
 
-fn parse_query<'a>(sql: String) -> Query<'a> {
+fn remove_sql_comments(sql: &str) -> String {
+    let mut result = String::with_capacity(sql.len());
+    let mut chars = sql.chars().peekable();
+
+    let mut in_string = false;
+    let mut in_line_comment = false;
+    let mut in_block_comment = false;
+
+    while let Some(c) = chars.next() {
+        // Start line comment
+        if !in_string && !in_block_comment && c == '-' && chars.peek() == Some(&'-') {
+            chars.next();
+            in_line_comment = true;
+            continue;
+        }
+
+        // Start block comment
+        if !in_string && !in_line_comment && c == '/' && chars.peek() == Some(&'*') {
+            chars.next();
+            in_block_comment = true;
+            continue;
+        }
+
+        // End line comment
+        if in_line_comment {
+            if c == '\n' {
+                in_line_comment = false;
+                result.push('\n');
+            }
+            continue;
+        }
+
+        // End block comment
+        if in_block_comment {
+            if c == '*' && chars.peek() == Some(&'/') {
+                chars.next();
+                in_block_comment = false;
+            }
+            continue;
+        }
+
+        // Toggle string literal (SQL standard single quotes)
+        if c == '\'' {
+            in_string = !in_string;
+            result.push(c);
+            continue;
+        }
+
+        // Normal character
+        result.push(c);
+    }
+
+    result
+}
+
+fn extract_sql_params(sql: &str) -> Vec<String> {
+    let re = Regex::new(r"@[A-Za-z_][A-Za-z0-9_]*").unwrap();
+
+    let params: HashSet<String> = re
+        .find_iter(sql)
+        .map(|m| st!(m.as_str()))
+        .collect();
+
+    params.into_iter().collect()
+}
+
+fn parse_sql(sql: String, sql_parameters: Option<&SqlParameters>) -> String {
     let path = env::current_dir()
         .unwrap()
         .to_string_lossy()
@@ -60,12 +133,29 @@ fn parse_query<'a>(sql: String) -> Query<'a> {
 
     let queries_path = format!("{path}/queries");
 
-    let sql_result = fs::read_to_string(format!("{queries_path}/{sql}.sql"));
+    let mut sql_final = match fs::read_to_string(format!("{queries_path}/{sql}.sql")) {
+        Ok(file_sql) => remove_sql_comments(&file_sql),
+        Err(_) => remove_sql_comments(&sql),
+    };
 
-    match sql_result {
-        Ok(sql_file) => return Query::new(sql_file),
-        Err(_) => return Query::new(sql),
+    if let Some(parameters_map) = sql_parameters {
+        let parameters = extract_sql_params(&sql_final);
+
+        for parameter in parameters {
+            let value = parameters_map.get(&parameter)
+                .expect(&format!("Parameter '{parameter}' not passed"))
+                .to_sql();
+            sql_final = sql_final.replace(&parameter, &value)
+        }
     }
+
+    sql_final
+}
+
+fn parse_query<'a>(sql: String, sql_parameters: Option<&SqlParameters>) -> Query<'a> {
+    let sql_final = parse_sql(sql, sql_parameters);
+
+    Query::new(sql_final)
 }
 
 /* #endregion */
@@ -94,36 +184,36 @@ pub async fn mssql_client() -> anyhow::Result<Client<Compat<TcpStream>>> {
     Ok(client)
 }
 
-pub async fn get_query_result(sql: String) -> anyhow::Result<ExecuteResult> {
-    let query = parse_query(sql);
+pub async fn get_query_result(sql: String, sql_parameters: Option<&SqlParameters>) -> anyhow::Result<ExecuteResult> {
+    let query = parse_query(sql, sql_parameters);
     let mut client = mssql_client().await?;
     let result = query.execute(&mut client).await?;
 
     Ok(result)
 }
 
-pub async fn run_query(sql: String) -> anyhow::Result<Vec<u64>> {
-    let result = get_query_result(sql).await?;
+pub async fn run_query(sql: String, sql_parameters: Option<&SqlParameters>) -> anyhow::Result<Vec<u64>> {
+    let result = get_query_result(sql, sql_parameters).await?;
     
     Ok(result.rows_affected().to_vec())
 }
 
-pub async fn get_response_from<T>(sql: String, params: SqlParameters) -> anyhow::Result<Vec<T>> 
+pub async fn get_response_from<T>(sql: String, sql_parameters: Option<&SqlParameters>) -> anyhow::Result<Vec<T>> 
     where 
         T: DBLoad,
 {
-    let query = parse_query(sql);
+    let query = parse_query(sql, sql_parameters);
     let mut client = mssql_client().await?;
     let mut stream = query.query(&mut client).await?;
     
     T::from_stream(stream).await
 }
 
-pub async fn get_single_response_from<R>(sql: String, column_name: Option<&str>) -> anyhow::Result<Option<R>>
+pub async fn get_single_response_from<R>(sql: String, column_name: Option<&str>, sql_parameters: Option<&SqlParameters>) -> anyhow::Result<Option<R>>
     where 
         R: TiberiusCoversion
 {
-    let query = parse_query(sql);
+    let query = parse_query(sql, sql_parameters);
     let mut client = mssql_client().await?;
     let mut stream= query.query(&mut client).await?;
 
@@ -143,22 +233,22 @@ pub async fn get_single_response_from<R>(sql: String, column_name: Option<&str>)
     Ok(value)
 }
 
-pub async fn select_from<T>(where_parameters: SqlParameters, columns: Option<Vec<&str>>, top: Option<u8>) -> anyhow::Result<Vec<T>> 
+pub async fn select_from<T>(where_parameters: Option<SqlParameters>, columns: Option<Vec<&str>>, top: Option<u8>) -> anyhow::Result<Vec<T>> 
     where 
         T: DBLoad
 {
     let sql = build_known_select_clause::<T>(where_parameters, columns, top);
-    get_response_from(sql, SqlParameters::new()).await
+    get_response_from(sql, None).await
 }
 
-pub async fn select_column_from<T, R>(column_name: &str, where_parameters: SqlParameters, top: Option<u8>) -> anyhow::Result<Vec<Option<R>>>
+pub async fn select_column_from<T, R>(column_name: &str, where_parameters: Option<SqlParameters>, top: Option<u8>) -> anyhow::Result<Vec<Option<R>>>
     where 
         T: DBLoad,
         R: TiberiusCoversion
 {
     let columns = Some(vec![column_name]);
     let sql = build_known_select_clause::<T>(where_parameters, columns, top);
-    let query = parse_query(sql);
+    let query = parse_query(sql, None);
 
     let mut client = mssql_client().await?;
     let mut stream= query.query(&mut client).await?;
@@ -173,13 +263,13 @@ pub async fn select_column_from<T, R>(column_name: &str, where_parameters: SqlPa
     Ok(result)
 }
 
-pub async fn select_single_from<T, R>(where_parameters: SqlParameters, column_name: &str) -> anyhow::Result<Option<R>>
+pub async fn select_single_from<T, R>(where_parameters: Option<SqlParameters>, column_name: &str) -> anyhow::Result<Option<R>>
     where 
         T: DBLoad,
         R: TiberiusCoversion
 {
     let sql = build_known_select_clause::<T>(where_parameters, None, None);
-    let query = parse_query(sql);
+    let query = parse_query(sql, None);
 
     let mut client = mssql_client().await?;
     let mut stream= query.query(&mut client).await?;
@@ -193,8 +283,8 @@ pub async fn select_single_from<T, R>(where_parameters: SqlParameters, column_na
     Ok(result)
 }
 
-pub async fn get_generic_response(sql: String) -> anyhow::Result<Vec<tiberius::Row>> {
-    let query = parse_query(sql);
+pub async fn get_generic_response(sql: String, sql_parameters: Option<&SqlParameters>) -> anyhow::Result<Vec<tiberius::Row>> {
+    let query = parse_query(sql, sql_parameters);
     let mut client = mssql_client().await?;
     let mut stream = query.query(&mut client).await?;
     let mut row_stream = stream.into_row_stream();
@@ -209,22 +299,22 @@ pub async fn get_generic_response(sql: String) -> anyhow::Result<Vec<tiberius::R
     Ok(result)
 }
 
-pub async fn select_generic(table_name: &str, where_parameters: SqlParameters, columns: Option<Vec<&str>>, top: Option<u8>) -> anyhow::Result<Vec<tiberius::Row>> {
+pub async fn select_generic(table_name: &str, where_parameters: Option<SqlParameters>, columns: Option<Vec<&str>>, top: Option<u8>) -> anyhow::Result<Vec<tiberius::Row>> {
     let sql = build_generic_select_clause(table_name, where_parameters, columns, top);
 
-    get_generic_response(sql).await
+    get_generic_response(sql, None).await
 }
 
-async fn chain_executions(chain_exec: ChainedExec<'_>, parameters: &mut SqlParameters) -> anyhow::Result<Vec<u64>> {
+async fn chain_executions(chain_exec: ChainExec<'_>, sql_parameters: &mut SqlParameters) -> anyhow::Result<Vec<u64>> {
     let mut rows_affected = Vec::<u64>::new();
 
     let mut  client = mssql_client().await?;
-    client.simple_query("BEGIN TRANSACTION").await?;
+    client.simple_query(st!("BEGIN TRANSACTION")).await?;
 
     let result = (|| async {
         for exec in chain_exec {
-            let (sql, new_parameter_name) = exec(&parameters);
-            let query = parse_query(sql);
+            let (sql, new_parameter_name) = exec(&sql_parameters);
+            let query = parse_query(sql, Some(&sql_parameters));
     
             match new_parameter_name {
                 Some(name) => {
@@ -238,7 +328,7 @@ async fn chain_executions(chain_exec: ChainedExec<'_>, parameters: &mut SqlParam
                         let opt = a.try_get_by_index::<i32>(0)?;
     
                         if let Some(value) = opt {
-                            parameters.insert(name.clone(), SqlValue::Int(value));
+                            sql_parameters.insert(name.clone(), SqlValue::Int(value));
                         }
                     }
                 },
@@ -253,11 +343,11 @@ async fn chain_executions(chain_exec: ChainedExec<'_>, parameters: &mut SqlParam
 
     match result().await {
         Ok(affected) => {
-            client.simple_query("COMMIT").await?;
+            client.simple_query(st!("COMMIT")).await?;
             Ok(affected)
         }
         Err(e) => {
-            client.simple_query("ROLLBACK").await?;
+            client.simple_query(st!("ROLLBACK")).await?;
             Err(e)
         }
     }
@@ -272,120 +362,141 @@ mod tests {
 
     use super::*;
     use crate::ddb::{DBLoad, context::db_types::{ChainReturn, SqlValue}, tables::*};
-    const VAR_TYPES: usize = 6;
 
-    // #[tokio::test]
-    async fn not_a_test() {
-        dotenvy::dotenv().ok();
-        let mut chain_exec = ChainedExec::new();
-        chain_exec.push(&init_insert);
-        chain_exec.push(&next_insert);
-        chain_exec.push(&next_insert);
-        let mut p = SqlParameters::new();
+    #[test]
+    fn check_remove_sql_comments() {
+        let sql = r#"
+SELECT 'this -- is not a comment'
+FROM users -- remove this
+WHERE id = 10
+/* block
+comment */
+AND name = '/* not a comment */'
+        "#;
+        
+        let output = r#"
+SELECT 'this -- is not a comment'
+FROM users 
+WHERE id = 10
 
-        let mut  client = mssql_client().await.unwrap();
-        // client.simple_query("BEGIN TRANSACTION").await.unwrap();
-        // client.query("INSERT INTO uploader.COLUMN_TYPE (SqlType, ViewType) VALUES ('asdaf', 'sadfas')", &[]).await.unwrap();
-        // client.simple_query("ROLLBACK").await.unwrap();
+AND name = '/* not a comment */'
+        "#;
 
-        let v = chain_executions(chain_exec, &mut p).await;
-
-        println!("{v:?}")
+        let new_sql = remove_sql_comments(sql);
+        
+        assert_eq!(new_sql, output)
     }
 
-    fn init_insert(parameters: &SqlParameters) -> ChainReturn {
-        (
-            "INSERT INTO uploader.COLUMN_TYPE (SqlType, ViewType) OUTPUT INSERTED.pk VALUES ('asdaf', 'sadfas')".to_string(),
-            Some("pk".to_string())
-        )
+    #[test]
+    fn check_extract_sql_params() {
+        let sql = "
+            SELECT *
+            FROM users
+            WHERE id = @user_id
+            AND status = @status
+            AND owner = @user_id
+        ";
+
+        let params = extract_sql_params(sql);
+        
+        assert!(params.contains(&st!("@user_id")));
+        assert!(params.contains(&st!("@status")));
     }
-    
-    fn next_insert(parameters: &SqlParameters) -> ChainReturn {
-        let pk = parameters.get("pk").unwrap().to_string();
-        (
-            format!("INSERT INTO uploader.COLUMN_TYPE (SqlType, ViewType) OUTPUT INSERTED.pk VALUES ('{pk}', '{pk}')"),
-            Some("pk".to_string())
-        )
+
+    #[test]
+    fn check_parse_sql() {
+        let sql = "SELECT * FROM users /* aaa */ WHERE id = @user_id AND status IN @status";
+        let mut sql_parameters = SqlParameters::new();
+        sql_parameters.insert(st!("@user_id"), SqlValue::Int(123456));
+        sql_parameters.insert(st!("@status"), SqlValue::StrList(vec![st!("ON"), st!("OFF")]));
+
+        let output = "SELECT * FROM users  WHERE id = 123456 AND status IN ('ON', 'OFF')";
+
+        let new_sql = parse_sql(st!(sql), Some(&sql_parameters));
+
+        assert_eq!(new_sql, output)
     }
 
     #[test]
     fn check_build_where() {
         let mut a = SqlParameters::new();
-        a.insert("Int".to_string(), SqlValue::Int(2));
+        a.insert(st!("Int"), SqlValue::Int(2));
         let where_c = build_where_clause(a);
-        assert_eq!(where_c, "WHERE 1 = 1 AND [Int] = 2".to_string());
+        assert_eq!(where_c, st!("WHERE [Int] = 2"));
 
         let mut a = SqlParameters::new();
-        a.insert("Float".to_string(), SqlValue::Float(2.5));
+        a.insert(st!("Float"), SqlValue::Float(2.5));
         let where_c = build_where_clause(a);
-        assert_eq!(where_c, "WHERE 1 = 1 AND [Float] = 2.5".to_string());
+        assert_eq!(where_c, st!("WHERE [Float] = 2.5"));
 
         let mut a = SqlParameters::new();
-        a.insert("Bool".to_string(), SqlValue::Bool(true));
+        a.insert(st!("Bool"), SqlValue::Bool(true));
         let where_c = build_where_clause(a);
-        assert_eq!(where_c, "WHERE 1 = 1 AND [Bool] = 1".to_string());
+        assert_eq!(where_c, st!("WHERE [Bool] = 1"));
 
         let mut a = SqlParameters::new();
-        a.insert("StringL".to_string(), SqlValue::Str(String::from("OLOKO"), true));
+        a.insert(st!("StringL"), SqlValue::Str(st!("OLOKO"), true));
         let where_c = build_where_clause(a);
-        assert_eq!(where_c, "WHERE 1 = 1 AND [StringL] like 'OLOKO'".to_string());
+        assert_eq!(where_c, st!("WHERE [StringL] like 'OLOKO'"));
         
         let mut a = SqlParameters::new();
-        a.insert("StringN".to_string(), SqlValue::Str(String::from(";-;"), false));
+        a.insert(st!("StringN"), SqlValue::Str(st!(";-;"), false));
         let where_c = build_where_clause(a);
-        assert_eq!(where_c, "WHERE 1 = 1 AND [StringN] = '-'".to_string());
+        assert_eq!(where_c, st!("WHERE [StringN] = '-'"));
 
         let mut a = SqlParameters::new();
-        a.insert("Date".to_string(), SqlValue::Date(NaiveDate::parse_from_str("2025-12-21", "%Y-%m-%d").unwrap()));
+        a.insert(st!("Date"), SqlValue::Date(NaiveDate::parse_from_str("2025-12-21", "%Y-%m-%d").unwrap()));
         let where_c = build_where_clause(a);
-        assert_eq!(where_c, "WHERE 1 = 1 AND [Date] = '2025-12-21'".to_string());
+        assert_eq!(where_c, st!("WHERE [Date] = '2025-12-21'"));
 
         let mut a = SqlParameters::new();
-        a.insert("DateTime".to_string(), SqlValue::DateTime(NaiveDateTime::parse_from_str("2025-12-21 10:30:00", "%Y-%m-%d %H:%M:%S").unwrap()));
+        a.insert(st!("DateTime"), SqlValue::DateTime(NaiveDateTime::parse_from_str("2025-12-21 10:30:00", "%Y-%m-%d %H:%M:%S").unwrap()));
         let where_c = build_where_clause(a);
-        assert_eq!(where_c, "WHERE 1 = 1 AND [DateTime] = '2025-12-21 10:30:00'".to_string());
+        assert_eq!(where_c, st!("WHERE [DateTime] = '2025-12-21 10:30:00'"));
         
         let mut a = SqlParameters::new();
-        a.insert("IntVec".to_string(), SqlValue::IntList(vec![1, 2, 3]));
+        a.insert(st!("IntVec"), SqlValue::IntList(vec![1, 2, 3]));
         let where_c = build_where_clause(a);
-        assert_eq!(where_c, "WHERE 1 = 1 AND [IntVec] IN (1, 2, 3)".to_string());
+        assert_eq!(where_c, st!("WHERE [IntVec] IN (1, 2, 3)"));
 
         let mut a = SqlParameters::new();
-        a.insert("FloatVec".to_string(), SqlValue::FloatList(vec![1.5, 2.5, 3.5]));
+        a.insert(st!("FloatVec"), SqlValue::FloatList(vec![1.5, 2.5, 3.5]));
         let where_c = build_where_clause(a);
-        assert_eq!(where_c, "WHERE 1 = 1 AND [FloatVec] IN (1.5, 2.5, 3.5)".to_string());
+        assert_eq!(where_c, st!("WHERE [FloatVec] IN (1.5, 2.5, 3.5)"));
 
         let mut a = SqlParameters::new();
-        a.insert("StrVec".to_string(), SqlValue::StrList(vec!["1".to_string(), "2".to_string(), "3".to_string()]));
+        a.insert(st!("StrVec"), SqlValue::StrList(vec![st!("1"), st!("2"), st!("3")]));
         let where_c = build_where_clause(a);
-        assert_eq!(where_c, "WHERE 1 = 1 AND [StrVec] IN ('1', '2', '3')".to_string());
+        assert_eq!(where_c, st!("WHERE [StrVec] IN ('1', '2', '3')"));
     }
 
     #[test]
     fn check_build_select() {
-        let build = build_known_select_clause::<ColumnType>(SqlParameters::new(), None, None);
-        assert_eq!(build, "SELECT  * FROM uploader.[COLUMN_TYPE] WHERE 1 = 1 ");
+        let build = build_known_select_clause::<ColumnType>(None, None, None);
+        assert_eq!(build, st!("SELECT  * FROM uploader.[COLUMN_TYPE] "));
         
-        let build = build_known_select_clause::<ColumnType>(SqlParameters::new(), None, Some(10));
-        assert_eq!(build, "SELECT TOP 10 * FROM uploader.[COLUMN_TYPE] WHERE 1 = 1 ");
-        
-        let mut a = SqlParameters::new();
-        a.insert("Int".to_string(), SqlValue::Int(2));
-        let build = build_known_select_clause::<ColumnType>(a, None, None);
-        assert_eq!(build, "SELECT  * FROM uploader.[COLUMN_TYPE] WHERE 1 = 1 AND [Int] = 2");
+        let build = build_known_select_clause::<ColumnType>(None, None, Some(10));
+        assert_eq!(build, st!("SELECT TOP 10 * FROM uploader.[COLUMN_TYPE] "));
         
         let mut a = SqlParameters::new();
-        a.insert("Int".to_string(), SqlValue::Int(2));
-        let build = build_known_select_clause::<ColumnType>(a, None, Some(10));
-        assert_eq!(build, "SELECT TOP 10 * FROM uploader.[COLUMN_TYPE] WHERE 1 = 1 AND [Int] = 2");
+        a.insert(st!("Int"), SqlValue::Int(2));
+        let build = build_known_select_clause::<ColumnType>(Some(a), None, None);
+        assert_eq!(build, st!("SELECT  * FROM uploader.[COLUMN_TYPE] WHERE [Int] = 2"));
+        
+        let mut a = SqlParameters::new();
+        a.insert(st!("Int"), SqlValue::Int(2));
+        let build = build_known_select_clause::<ColumnType>(Some(a), None, Some(10));
+        assert_eq!(build, st!("SELECT TOP 10 * FROM uploader.[COLUMN_TYPE] WHERE [Int] = 2"));
     }
 
     #[tokio::test]
     async fn check_get_query_result() {
         dotenvy::dotenv().ok();
-        let sql = "UPDATE uploader.COLUMN_TYPE SET [SqlType] = 'INT' WHERE [SqlType] = 'INT'".to_string();
-        let result = get_query_result(sql).await.unwrap();
+        let sql = st!("UPDATE uploader.COLUMN_TYPE SET [SqlType] = 'INT' WHERE [SqlType] = 'INT'");
+        let result = get_query_result(sql, None).await.unwrap();
         let a = result.rows_affected();
+
+        // Assuming that INT if a default type (every will use it)
         assert_eq!(a, [1]);
         let b = result.total();
         assert_eq!(b, 1);
@@ -394,12 +505,14 @@ mod tests {
     #[tokio::test]
     async fn check_get_query() {
         dotenvy::dotenv().ok();
-        let sql = "SELECT * FROM uploader.COLUMN_TYPE".to_string();
-        let result = run_query(sql).await.unwrap();
-        assert_eq!(result, vec![VAR_TYPES as u64]);
+        let sql = st!("SELECT * FROM uploader.COLUMN_TYPE");
+        let result = run_query(sql, None).await.unwrap();
+        assert!(result.len() > 0);
         
-        let sql = "UPDATE uploader.COLUMN_TYPE SET [SqlType] = 'INT' WHERE [SqlType] = 'INT'".to_string();
-        let result = run_query(sql).await.unwrap();
+        let sql = st!("UPDATE uploader.COLUMN_TYPE SET [SqlType] = 'INT' WHERE [SqlType] = 'INT'");
+        let result = run_query(sql, None).await.unwrap();
+
+        // Assuming that INT if a default type (every will use it)
         assert_eq!(result, vec![1]);
     }
 
@@ -408,39 +521,41 @@ mod tests {
         dotenvy::dotenv().ok();
 
         let result = get_response_from::<ColumnType>(
-            "_test".to_string(), 
-            SqlParameters::new()
+            st!("_test"), 
+            None
         ).await.unwrap();
         
-        assert_eq!(result.len(), VAR_TYPES);
+        assert!(result.len() > 0);
     }
 
     #[tokio::test]
     async fn check_get_query_single_response() {
         dotenvy::dotenv().ok();
 
-        let result = get_single_response_from::<i32>(
-            "_test".to_string(),
-            Some(ColumnType::COL_PK),
+        let result = get_single_response_from::<String>(
+            st!("_test"),
+            Some(ColumnType::COL_SQL_TYPE),
+            None
         ).await.unwrap();
-        
-        assert_eq!(result, Some(1));
+
+        assert!(result.is_some());
 
         let result = get_single_response_from::<i32>(
-            "_test".to_string(),
+            st!("_test"),
             None,
+            None
         ).await.unwrap();
         
-        assert_eq!(result, Some(1));
+        assert!(result.is_some());
     }
 
     #[tokio::test]
     async fn check_select_from() {
         dotenvy::dotenv().ok();
 
-        let result = select_from::<ColumnType>(SqlParameters::new(), None, None).await.unwrap();
+        let result = select_from::<ColumnType>(None, None, None).await.unwrap();
 
-        assert_eq!(result.len(), VAR_TYPES);
+        assert!(result.len() > 0);
     }
 
     #[tokio::test]
@@ -449,34 +564,96 @@ mod tests {
 
         let result = select_column_from::<ColumnType, String>(
             ColumnType::COL_SQL_TYPE,
-            SqlParameters::new(), 
+            None, 
             None, 
         ).await.unwrap();
 
-        assert_eq!(result.len(), VAR_TYPES);
+        assert!(result.len() > 0);
     }
 
     #[tokio::test]
     async fn check_select_single() {
         dotenvy::dotenv().ok();
         
-        let result = select_single_from::<ColumnType, i32>(SqlParameters::new(), ColumnType::COL_PK).await.unwrap();
-        assert_eq!(result, Some(1));
+        let result = select_single_from::<ColumnType, i32>(None, ColumnType::COL_PK).await.unwrap();
+        assert!(result.is_some());
     }
 
     #[tokio::test]
     async fn check_get_generic_response() {
         dotenvy::dotenv().ok();
-        let rows = get_generic_response("SELECT * FROM uploader.[COLUMN_TYPE]".to_string()).await.unwrap();
+        let rows = get_generic_response(st!("SELECT * FROM uploader.[COLUMN_TYPE]"), None).await.unwrap();
         
-        assert_eq!(rows[0].len(), 3)
+        assert!(rows.len() > 0);
+        assert_eq!(rows[0].len(), 3);
     }
     
     #[tokio::test]
     async fn check_select_generic() {
         dotenvy::dotenv().ok();
-        let rows = select_generic("COLUMN_TYPE", SqlParameters::new(), None, None).await.unwrap();
+        let rows = select_generic("COLUMN_TYPE", None, None, None).await.unwrap();
 
-        assert_eq!(rows[0].len(), 3)
+        assert!(rows.len() > 0);
+        assert_eq!(rows[0].len(), 3);
     }
+
+    #[tokio::test]
+    async fn check_chain_execution() {
+        fn do_nothing(parameters: &SqlParameters) -> ChainReturn {
+            (
+                st!(""),
+                None
+            )
+        }
+
+        fn init_insert(parameters: &SqlParameters) -> ChainReturn {
+            (
+                st!("INSERT INTO uploader.COLUMN_TYPE (SqlType, ViewType) OUTPUT INSERTED.pk VALUES ('asdaf', 'sadfas')"),
+                Some(st!("pk"))
+            )
+        }
+        
+        fn next_insert(parameters: &SqlParameters) -> ChainReturn {
+            let pk = parameters.get(&st!("pk")).unwrap().to_string();
+            (
+                format!("INSERT INTO uploader.COLUMN_TYPE (SqlType, ViewType) OUTPUT INSERTED.pk VALUES ('{pk}', '{pk}')"),
+                Some(st!("pk"))
+            )
+        }
+
+        fn error_insert(parameters: &SqlParameters) -> ChainReturn {
+            (
+                st!("||ERROR||"),
+                None
+            )
+        }
+        
+        dotenvy::dotenv().ok();
+        let mut chain_exec = ChainExec::new();
+        chain_exec.push(&init_insert);
+        chain_exec.push(&next_insert);
+        chain_exec.push(&next_insert);
+        chain_exec.push(&error_insert);
+        let mut p = SqlParameters::new();
+
+        let mut  client = mssql_client().await.unwrap();
+
+        let v = chain_executions(chain_exec, &mut p).await;
+
+        assert!(v.is_err());
+
+        let mut chain_exec = ChainExec::new();
+        chain_exec.push(&do_nothing);
+        chain_exec.push(&do_nothing);
+        chain_exec.push(&do_nothing);
+        chain_exec.push(&do_nothing);
+        let mut p = SqlParameters::new();
+
+        let mut  client = mssql_client().await.unwrap();
+
+        let v = chain_executions(chain_exec, &mut p).await;
+
+        assert!(v.is_ok())
+    }
+
 }

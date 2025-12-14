@@ -84,8 +84,7 @@ pub enum SqlValue {
 impl SqlValue {
     pub fn to_string(&self) -> String {
         match self {
-            SqlValue::Int(v) => 
-                format!("{v}"),
+            SqlValue::Int(v) => format!("{v}"),
 
             SqlValue::Float(v) => format!("{v}"),
 
@@ -117,6 +116,18 @@ impl SqlValue {
         }
     }
 
+    pub fn to_sql(&self) -> String {
+        match self {
+            SqlValue::IntList(_) | SqlValue::FloatList(_) | SqlValue::StrList(_) => 
+                format!("({})", self.to_string()),
+
+            SqlValue::Str(_, _) | SqlValue::Date(_) | SqlValue::DateTime(_) => 
+                format!("'{}'", self.to_string()),
+
+            _ => format!("{}", self.to_string()),
+        }
+    }
+
     pub fn to_sql_where(&self) -> String {
         match self {
             SqlValue::IntList(_) | SqlValue::FloatList(_) | SqlValue::StrList(_) => 
@@ -139,4 +150,4 @@ impl SqlValue {
 
 
 pub type ChainReturn = (String, Option<String>);
-pub type ChainedExec<'a> = Vec<&'a dyn Fn(&SqlParameters) -> ChainReturn>;
+pub type ChainExec<'a> = Vec<&'a dyn Fn(&SqlParameters) -> ChainReturn>;

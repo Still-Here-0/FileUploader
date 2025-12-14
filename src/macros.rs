@@ -30,3 +30,10 @@ macro_rules! from_tiberius_value {
         }
     };
 }
+
+#[macro_export]
+macro_rules! st {
+    ($s:expr) => {
+        ::std::string::String::from($s)
+    };
+}

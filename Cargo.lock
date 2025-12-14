@@ -770,6 +770,7 @@ dependencies = [
  "jsonwebtoken",
  "log",
  "macros",
+ "regex",
  "serde",
  "serde_json",
  "tiberius",
