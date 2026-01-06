@@ -1,9 +1,10 @@
 use std::array;
 
 use chrono::{ NaiveDate, NaiveDateTime, NaiveTime };
-use tiberius:: FromSql ;
+use tiberius::FromSql;
 
 use crate::from_tiberius_value;
+use super::db_types::SqlValue;
 
 pub trait TiberiusCoversion: Sized {
     type SqlType<'c>: FromSql<'c>;
@@ -32,6 +33,7 @@ impl TiberiusCoversion for Vec<u8> {
 /* #endregion */
 
 // Owned types
+from_tiberius_value!(u8);
 from_tiberius_value!(i16);
 from_tiberius_value!(i32);
 from_tiberius_value!(i64);
@@ -41,7 +43,6 @@ from_tiberius_value!(bool);
 from_tiberius_value!(NaiveDate);
 from_tiberius_value!(NaiveTime);
 from_tiberius_value!(NaiveDateTime);
-// from_tiberius_value!(tiberius::ColumnType);
 
 pub trait FromOwnedSql {
     fn try_get_by_index<T>(&self, idx: usize) -> anyhow::Result<Option<T>>

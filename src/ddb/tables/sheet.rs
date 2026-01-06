@@ -12,7 +12,7 @@ pub struct Sheet {
     table_name: String,
     last_edited_by_fk: i32,
     active: bool,
-    days_to_refresh: i32,
+    days_to_refresh: Option<i32>,
     model: Option<Vec<u8>>,
     request_after_update: Option<String>
 }
@@ -33,7 +33,7 @@ impl Sheet {
         table_name: String,
         last_edited_by_fk: i32,
         active: bool,
-        days_to_refresh: i32,
+        days_to_refresh: Option<i32>,
         model: Option<Vec<u8>>,
         request_after_update: Option<String>
     ) -> Self {
@@ -54,4 +54,4 @@ impl Sheet {
 use super::super::DBLoad;
 use super::super::tiberius_interface::FromOwnedSql;
 
-dbload!(Sheet, "SHEET", COL_PK, COL_DESCRIPTION, COL_TABLE_NAME, COL_LAST_EDITED_BY_FK, COL_ACTIVE, COL_DAYS_TO_REFRESH, COL_MODEL?, COL_REQUEST_AFTER_UPDATE?);
+dbload!(Sheet, "SHEET", COL_PK, COL_DESCRIPTION, COL_TABLE_NAME, COL_LAST_EDITED_BY_FK, COL_ACTIVE, COL_DAYS_TO_REFRESH?, COL_MODEL?, COL_REQUEST_AFTER_UPDATE?);

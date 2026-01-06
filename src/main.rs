@@ -1,29 +1,28 @@
 #![allow(unused)]
 
-use actix_web::{HttpServer, App, web::Data, middleware::Logger};
+use axum::Router;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
+mod routes;
+
+#[tokio::main]
+async fn main() {
     
     init_log();
     dotenvy::dotenv().ok();
     
     log::info!("Starting app");
 
-    // let host = std::env::var("HOST").unwrap();
-    // let port: u16  = std::env::var("PORT").unwrap().parse().unwrap();
-    // log::info!("App will run on http://{host}:{port}");
-    
-    // HttpServer::new( move || {
-    //     let logger = Logger::default();
-    //     App::new()
-    //         .wrap(logger)
-    //         .service(file_uploader::api_scream)
-    // })
-    // .bind( (host, port) )?
-    // .run().await;
+    let host = std::env::var("HOST").expect("'HOST' not valid on env");
+    let port = std::env::var("PORT").expect("'PORT' not valid on env");
 
-    Ok(())
+    let addr = format!("{host}:{port}");
+    println!("Listening on http://{}", addr);
+
+    let listener = tokio::net::TcpListener::bind(addr).await.expect("Failed to bind address");
+    
+    let app = routes::app();
+    axum::serve(listener, app).await.unwrap();
 }
 
 fn init_log() {

@@ -39,7 +39,7 @@ mod sheet_used_by_board;
 pub use sheet_used_by_board::SheetUsedByBoard;
 
 mod sheet;
-use sheet::Sheet;
+pub use sheet::Sheet;
 
 mod upload;
 pub use upload::Upload;
@@ -63,7 +63,7 @@ mod tests {
         where T: DBLoad
     {
         dotenvy::dotenv().ok();
-        let mut client = super::super::context::mssql_client().await.unwrap();
+        let mut client = super::super::context::functions::mssql_client().await.unwrap();
     
         let tab_name = T::TAB;
         let columns = T::COLS;
@@ -81,9 +81,7 @@ mod tests {
             }
         }
     
-        let a = stream.into_row_stream().next().await.unwrap().unwrap();
-        print!("{a:?}")
-        // let a = T::from_stream(stream).await.unwrap();
+        let a = stream.into_row_stream().next().await;
     }
 
     #[tokio::test]

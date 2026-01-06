@@ -6,25 +6,25 @@
     "configurations": [
     
         {
-            "name": "Debug executable 'rs_base_api'",
+            "name": "Debug executable 'file-uploader'",
             "type": "lldb",
             "request": "launch",
             "cargo": {
                 "args": [
                     "run",
-                    "--bin=rs_base_api"
+                    "--bin=file-uploader"
                 ]
             },
             "args": []
         },
         {
-            "name": "Debug unit tests in executable 'rs_base_api'",
+            "name": "Debug unit tests in executable 'file-uploader'",
             "type": "lldb",
             "request": "launch",
             "cargo": {
                 "args": [
                     "test",
-                    "--bin=rs_base_api"
+                    "--bin=file-uploader"
                 ]
             }
         }

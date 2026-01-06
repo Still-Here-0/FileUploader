@@ -1,13 +1,13 @@
 #![allow(unused)]
 
-mod ddb;
 pub mod api;
 
+mod repository; 
+mod service;
+
+mod ddb;
+mod model;
+
+mod helpers;
+
 mod macros;
-
-use actix_web::{ HttpResponse, Responder, get };
-
-#[get("/")]
-pub async fn api_scream() -> impl Responder {
-    HttpResponse::Forbidden()
-}
