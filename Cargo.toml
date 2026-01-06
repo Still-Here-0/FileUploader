@@ -10,6 +10,7 @@ macros = { path = "macros" }
 
 # Main dependency, back bone of a web server
 axum = { version = "0.8.8", features = ["multipart"] }
+axum-macros = "0.5"
 
 # Serialization
 serde = { version = "1.0.228", features = ["derive"] }

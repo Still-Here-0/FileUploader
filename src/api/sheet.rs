@@ -10,6 +10,7 @@ pub async fn list_sheets() {
     
 }
 
+#[axum_macros::debug_handler]
 pub async fn add_sheet(
     mut multipart: Multipart,
 ) -> StatusCode 
@@ -49,13 +50,10 @@ pub async fn add_sheet(
     if columns.len() == 0 { return StatusCode::BAD_REQUEST; }
 
     if let Some(new_sheet) = new_sheet {
-        service::add_sheet_to_db(new_sheet, columns, 1, model_file).await;
-        // service::add_sheet_to_db_(new_sheet, columns, 1, model_file).await;
-        
-        // match service::add_sheet_to_db_(new_sheet, columns, 1, model_file).await {
-        //     Ok(_) => return StatusCode::OK,
-        //     Err(_) => return StatusCode::INTERNAL_SERVER_ERROR,
-        // }
+        match service::add_sheet_to_db_(new_sheet, columns, 1, model_file).await {
+            Ok(_) => return StatusCode::OK,
+            Err(_) => return StatusCode::INTERNAL_SERVER_ERROR,
+        }
     }
 
     StatusCode::BAD_REQUEST

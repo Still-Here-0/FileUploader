@@ -11,7 +11,7 @@ pub struct ChainMap<'a> {
     sings: Vec<Option<SqlSingleParameters>>,
 }
 
-impl<'a, 'b> ChainMap<'a> {
+impl<'a> ChainMap<'a> {
     pub fn new() -> Self {
         Self {
             execs: vec![],
@@ -32,7 +32,7 @@ impl<'a, 'b> ChainMap<'a> {
     }
 }
 
-impl<'a, 'b> IntoIterator for ChainMap<'a> {
+impl<'a> IntoIterator for ChainMap<'a> {
     type Item = (ChainExec<'a>, Option<SqlMultipleParameters>, Option<SqlSingleParameters>);
     type IntoIter = 
     Map<
@@ -55,8 +55,8 @@ impl<'a, 'b> IntoIterator for ChainMap<'a> {
 
 pub type ChainReturn = anyhow::Result<(String, Option<SqlSingleParameters>, Option<String>)>;
 
-pub type ChainExec<'a> = &'a dyn Fn(
+pub type ChainExec<'a> = &'a (dyn Fn(
     Option<SqlMultipleParameters>,
     Option<SqlSingleParameters>, 
     &SqlSingleParameters
-) -> ChainReturn;
+) -> ChainReturn + Send + Sync);
